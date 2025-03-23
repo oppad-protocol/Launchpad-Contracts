@@ -57,9 +57,9 @@ The **Farming Contract** allows users to stake tokens and earn rewards. Key feat
 ### Steps
 1. Clone the repository:
    ```bash
-   git clone https://github.com/your-username/OPPAD.git
+   git clone https://github.com/oppad-protocol/Launchpad-Contracts
    cd OPPAD
-
+```
 
 2. Install dependencies:
 
@@ -67,15 +67,19 @@ The **Farming Contract** allows users to stake tokens and earn rewards. Key feat
     Copy
     Edit
     npm install
-    Compile the contracts:
+ ```
+3. Compile the contracts:
 
-    bash
+
+ ```bash
     Copy
     Edit
     npx hardhat compile
-    Run tests:
+ ```
+4. Run tests:
 
-    bash
+
+ ```bash
     Copy
     Edit
     npx hardhat test
@@ -180,3 +184,24 @@ solidity
 Copy
 await farming.unstake(ethers.utils.parseEther("50"));
 ```
+
+## Contributing
+### We welcome contributions to OPPAD! If you'd like to contribute, please follow these steps:
+
+1. Fork the repository.
+
+2. Create a new branch for your feature or bugfix.
+
+3. Commit your changes and push to your fork.
+
+4. Submit a pull request to the main branch.
+
+5. Please ensure your code follows the project's coding standards and includes tests for new features.
+
+## License
+### OPPAD is licensed under the MIT License. See LICENSE for more details.
+
+## Acknowledgments
+1. OpenZeppelin for secure and audited smart contract libraries.
+
+2. Hardhat for local development and testing.
