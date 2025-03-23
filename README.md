@@ -63,7 +63,7 @@ The **Farming Contract** allows users to stake tokens and earn rewards. Key feat
 
 2. Install dependencies:
 
- ```bash
+ bash
     Copy
     Edit
     npm install
@@ -80,18 +80,19 @@ The **Farming Contract** allows users to stake tokens and earn rewards. Key feat
     Edit
     npx hardhat test
 
-Usage
-Presale Contract
-Deploying the Contract
 
-    1. Deploy the presale contract:
+# Usage
+## Presale Contract
+### Deploying the Contract
+
+1. Deploy the presale contract:
 
     solidity
     Copy
     const PresaleContract = await ethers.getContractFactory("PresaleContract");
     const presale = await PresaleContract.deploy();
     await presale.deployed();
-    2. Create a presale:
+2. Create a presale:
 
     solidity
     Copy
@@ -102,12 +103,12 @@ Deploying the Contract
         softCap,
         presaleDuration
     );
-    3. Contribute to the presale:
+3. Contribute to the presale:
 
     solidity
     Copy
     await presale.contribute(presaleId, { value: ethers.utils.parseEther("1.0") });
-    4. Complete the presale:
+4. Complete the presale:
 
     solidity
     Copy
