@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>MIAW Staking + Web3Modal (Sepolia)</title>
+  
+  <!-- Web3Modal v1 -->
+  <script src="https://unpkg.com/web3modal@1.9.8/dist/index.js"></script>
+  <!-- WalletConnect Provider -->
+  <script src="https://unpkg.com/@walletconnect/web3-provider@1.7.8/dist/umd/index.min.js"></script>
+  <!-- Ethers.js (v5.7.2) -->
+  <script src="https://unpkg.com/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      background: #f9f9f9;
+      color: #333;
+    }
+    .container {
+      max-width: 700px;
+      margin: auto;
+      background: #fff;
+      padding: 20px 30px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    h2 {
+      margin-top: 0;
+    }
+    button {
+      padding: 8px 14px;
+      margin: 5px 0;
+      cursor: pointer;
+      border: none;
+      background: #007bff;
+      color: #fff;
+      font-size: 14px;
+      border-radius: 4px;
+    }
+    button:hover {
+      background: #0056b3;
+    }
+    input, select {
+      padding: 6px;
+      margin: 5px 0;
+      font-size: 14px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      width: 60%;
+    }
+    hr {
+      margin: 20px 0;
+      border: none;
+      border-top: 1px solid #ccc;
+    }
+    pre {
+      background: #f4f4f4;
+      padding: 10px;
+      margin: 5px 0;
+      font-size: 13px;
+      white-space: pre-wrap;
+      border-radius: 4px;
+    }
+    .status {
+      margin: 5px 0;
+      font-size: 14px;
+      color: #555;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>MIAW Staking + Web3Modal (Sepolia)</h2>
+    
+    <!-- Connection Buttons -->
+    <button id="connectWallet">Connect Wallet</button>
+    <div id="walletAddress" class="status"></div>
+    <hr>
+    
+    <button id="checkConnection">Check Connection</button>
+    <div id="connectionStatus" class="status"></div>
+    <hr>
+    
+    <!-- Approve Tokens -->
+    <h3>Approve Tokens</h3>
+    <p>Approve the staking contract to spend your tokens (Unlimited approval).</p>
+    <button id="approveBtn">Approve</button>
+    <div id="approveStatus" class="status"></div>
+    <hr>
+    
+    <!-- Stake Tokens -->
+    <h3>Stake Tokens</h3>
+    <p>Enter the amount (in tokens) and select a staking option:</p>
+    <label for="stakeAmount">Amount (in tokens):</label>
+    <br>
+    <input type="number" id="stakeAmount" placeholder="100000" value="100000">
+    <br>
+    <label for="stakeOption">Staking Option:</label>
+    <br>
+    <select id="stakeOption">
+      <option value="1">Option 1: 1 minute</option>
+      <option value="2">Option 2: 3 minutes</option>
+      <option value="3">Option 3: 6 minutes</option>
+      <option value="4">Option 4: 9 minutes</option>
+    </select>
+    <br>
+    <button id="stakeBtn">Stake Tokens</button>
+    <div id="stakeStatus" class="status"></div>
+    <hr>
+    
+    <!-- Unstake Tokens -->
+    <h3>Unstake Tokens</h3>
+    <p>Enter the stake index to unstake tokens.</p>
+    <label for="unstakeIndex">Stake Index:</label>
+    <br>
+    <input type="number" id="unstakeIndex" placeholder="0">
+    <br>
+    <button id="unstakeBtn">Unstake Tokens</button>
+    <div id="unstakeStatus" class="status"></div>
+    <hr>
+    
+    <!-- Claim Reward -->
+    <h3>Claim Reward</h3>
+    <p>Enter the stake index to claim reward (after staking period ends).</p>
+    <label for="claimIndex">Stake Index:</label>
+    <br>
+    <input type="number" id="claimIndex" placeholder="0">
+    <br>
+    <button id="claimBtn">Claim Reward</button>
+    <div id="claimStatus" class="status"></div>
+    <hr>
+    
+    <!-- Get Stake Details -->
+    <h3>Get All Stake Details</h3>
+    <p>Retrieve all stakes for your address.</p>
+    <button id="getStakeBtn">Get All Stakes</button>
+    <pre id="stakeDetails"></pre>
+  </div>
+  
+  <script>
+    // Global variables for Web3Modal and ethers.js
+    let web3Modal;
+    let provider;
+    let ethersProvider;
+    let signer;
+    let userAddress;
+
+    // MIAW token and staking contract addresses & ABIs
+    const tokenAddress = "0x0449800688b964eDcE8E01850dd23a959d997BA5"; // MIAW token
+    const stakingAddress = "0x5a3fA0bAB3FAc5A1d787A6Db2F7B79A6b53862bc"; // MIAW staking
+
+    const tokenAbi = [
+      "function approve(address spender, uint256 amount) public returns (bool)",
+      "function decimals() public view returns (uint8)"
+    ];
+
+    const stakingAbi = [
+      "function stake(uint256 amount, uint8 option) public",
+      "function unstake(uint256 stakeIndex) public",
+      "function claimReward(uint256 stakeIndex) public",
+      "function getStakes(address account) external view returns (uint256[] memory indices, uint256[] memory amounts, uint256[] memory startTimes, uint256[] memory durations, uint256[] memory rewardPercents, bool[] memory unstakedFlags, bool[] memory rewardClaimedFlags)"
+    ];
+
+    let tokenContract;
+    let stakingContract;
+
+    // 1. Configure provider options for Web3Modal (using WalletConnect)
+    const providerOptions = {
+      walletconnect: {
+        package: window.WalletConnectProvider.default, // from unpkg
+        options: {
+          rpc: {
+            11155111: "https://sepolia.infura.io/v3/253dfa329cf640b2a1eeacedb6f9adde"
+          }
+        }
+      }
+    };
+
+    // 2. Create the Web3Modal instance
+    web3Modal = new window.Web3Modal.default({
+      cacheProvider: false,
+      providerOptions,
+      theme: "dark"
+    });
+
+    // 3. Connect Wallet function (injected or WalletConnect)
+    async function connectWallet() {
+      try {
+        provider = await web3Modal.connect();
+        ethersProvider = new ethers.providers.Web3Provider(provider);
+        signer = ethersProvider.getSigner();
+        userAddress = await signer.getAddress();
+
+        document.getElementById("walletAddress").innerText = "Connected: " + userAddress;
+        console.log("Connected address:", userAddress);
+
+        // Instantiate contracts with the connected signer
+        tokenContract = new ethers.Contract(tokenAddress, tokenAbi, signer);
+        stakingContract = new ethers.Contract(stakingAddress, stakingAbi, signer);
+
+        provider.on("accountsChanged", (accounts) => {
+          console.log("Accounts changed:", accounts);
+        });
+        provider.on("chainChanged", (chainId) => {
+          console.log("Chain changed:", chainId);
+        });
+      } catch (error) {
+        console.error("Error connecting wallet:", error);
+      }
+    }
+
+    // 4. Check Connection
+    async function checkConnection() {
+      if (!signer) {
+        document.getElementById("connectionStatus").innerText = "No wallet connected.";
+        return;
+      }
+      const address = await signer.getAddress();
+      document.getElementById("connectionStatus").innerText = "Currently connected: " + address;
+    }
+
+    // 5. Approve Tokens with Unlimited Approval
+    async function approveTokens() {
+      if (!signer) {
+        alert("Connect a wallet first!");
+        return;
+      }
+      try {
+        // Using unlimited approval
+        document.getElementById("approveStatus").innerText = "Sending approval transaction...";
+        const tx = await tokenContract.approve(stakingAddress, ethers.constants.MaxUint256);
+        await tx.wait();
+        document.getElementById("approveStatus").innerText = "Unlimited approval successful!";
+        console.log("Approval tx hash:", tx.hash);
+      } catch (error) {
+        console.error("Approval error:", error);
+        document.getElementById("approveStatus").innerText = "Approval failed: " + error.message;
+      }
+    }
+
+    // 6. Stake Tokens
+    async function stakeTokens() {
+      if (!signer) {
+        alert("Connect a wallet first.");
+        return;
+      }
+      try {
+        const stakeAmountInput = document.getElementById("stakeAmount").value;
+        const stakeOption      = document.getElementById("stakeOption").value;
+        const decimals         = await tokenContract.decimals();
+        const amountToStake    = ethers.utils.parseUnits(stakeAmountInput, decimals);
+
+        document.getElementById("stakeStatus").innerText = "Sending stake transaction...";
+        const tx = await stakingContract.stake(amountToStake, parseInt(stakeOption));
+        await tx.wait();
+        document.getElementById("stakeStatus").innerText = "Staking successful!";
+        console.log("Staking tx hash:", tx.hash);
+      } catch (error) {
+        console.error("Staking error:", error);
+        document.getElementById("stakeStatus").innerText = "Staking failed: " + error.message;
+      }
+    }
+
+    // 7. Unstake Tokens
+    async function unstakeTokens() {
+      if (!signer) {
+        alert("Connect a wallet first.");
+        return;
+      }
+      try {
+        const stakeIndex = document.getElementById("unstakeIndex").value;
+        document.getElementById("unstakeStatus").innerText = "Sending unstake transaction...";
+        const tx = await stakingContract.unstake(parseInt(stakeIndex));
+        await tx.wait();
+        document.getElementById("unstakeStatus").innerText = "Unstake successful!";
+        console.log("Unstake tx hash:", tx.hash);
+      } catch (error) {
+        console.error("Unstake error:", error);
+        document.getElementById("unstakeStatus").innerText = "Unstake failed: " + error.message;
+      }
+    }
+
+    // 8. Claim Reward
+    async function claimReward() {
+      if (!signer) {
+        alert("Connect a wallet first.");
+        return;
+      }
+      try {
+        const stakeIndex = document.getElementById("claimIndex").value;
+        document.getElementById("claimStatus").innerText = "Sending claim transaction...";
+        const tx = await stakingContract.claimReward(parseInt(stakeIndex));
+        await tx.wait();
+        document.getElementById("claimStatus").innerText = "Reward claimed!";
+        console.log("Claim tx hash:", tx.hash);
+      } catch (error) {
+        console.error("Claim reward error:", error);
+        document.getElementById("claimStatus").innerText = "Claim reward failed: " + error.message;
+      }
+    }
+
+    // 9. Get All Stake Details for Connected Account
+    async function getStakeDetails() {
+      if (!signer) {
+        alert("Connect a wallet first.");
+        return;
+      }
+      try {
+        const result = await stakingContract.getStakes(userAddress);
+        // The function returns arrays: indices, amounts, startTimes, durations, rewardPercents, unstakedFlags, rewardClaimedFlags
+        let details = "";
+        for (let i = 0; i < result[0].length; i++) {
+          details += "Stake " + result[0][i].toString() + ":\n";
+          details += "  Amount: " + result[1][i].toString() + "\n";
+          details += "  Start Time: " + result[2][i].toString() + "\n";
+          details += "  Duration: " + result[3][i].toString() + "\n";
+          details += "  Reward Percent: " + result[4][i].toString() + "\n";
+          details += "  Unstaked: " + result[5][i] + "\n";
+          details += "  Reward Claimed: " + result[6][i] + "\n\n";
+        }
+        document.getElementById("stakeDetails").innerText = details;
+        console.log("Stake details:", details);
+      } catch (error) {
+        console.error("Get stake details error:", error);
+        document.getElementById("stakeDetails").innerText = "Error: " + error.message;
+      }
+    }
+
+    // Hook up UI events
+    document.getElementById("connectWallet").onclick = connectWallet;
+    document.getElementById("checkConnection").onclick = checkConnection;
+    document.getElementById("approveBtn").onclick = approveTokens;
+    document.getElementById("stakeBtn").onclick = stakeTokens;
+    document.getElementById("unstakeBtn").onclick = unstakeTokens;
+    document.getElementById("claimBtn").onclick = claimReward;
+    document.getElementById("getStakeBtn").onclick = getStakeDetails;
+  </script>
+</body>
+</html>
