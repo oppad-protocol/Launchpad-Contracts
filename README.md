@@ -60,7 +60,6 @@ The **Farming Contract** allows users to stake tokens and earn rewards. Key feat
    git clone https://github.com/your-username/OPPAD.git
    cd OPPAD
 
-  Install dependencies:
 
 2. Install dependencies:
 
@@ -80,3 +79,36 @@ The **Farming Contract** allows users to stake tokens and earn rewards. Key feat
     Copy
     Edit
     npx hardhat test
+
+Usage
+Presale Contract
+Deploying the Contract
+
+    1. Deploy the presale contract:
+
+    solidity
+    Copy
+    const PresaleContract = await ethers.getContractFactory("PresaleContract");
+    const presale = await PresaleContract.deploy();
+    await presale.deployed();
+    2. Create a presale:
+
+    solidity
+    Copy
+    await presale.createPresale(
+        tokenAddress,
+        tokenPrice,
+        hardCap,
+        softCap,
+        presaleDuration
+    );
+    3. Contribute to the presale:
+
+    solidity
+    Copy
+    await presale.contribute(presaleId, { value: ethers.utils.parseEther("1.0") });
+    4. Complete the presale:
+
+    solidity
+    Copy
+    await presale.completePresale(presaleId);
