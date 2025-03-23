@@ -59,3 +59,24 @@ The **Farming Contract** allows users to stake tokens and earn rewards. Key feat
    ```bash
    git clone https://github.com/your-username/OPPAD.git
    cd OPPAD
+
+  Install dependencies:
+
+2. Install dependencies:
+
+ ```bash
+    Copy
+    Edit
+    npm install
+    Compile the contracts:
+
+    bash
+    Copy
+    Edit
+    npx hardhat compile
+    Run tests:
+
+    bash
+    Copy
+    Edit
+    npx hardhat test
