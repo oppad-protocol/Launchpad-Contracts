@@ -119,3 +119,64 @@ The **Farming Contract** allows users to stake tokens and earn rewards. Key feat
     Copy
     await presale.completePresale(presaleId);
 ```
+
+# Token Contract
+## Deploying the Contract
+1. Deploy the token contract:
+```bash
+solidity
+Copy
+const MyToken = await ethers.getContractFactory("MyEnhancedToken");
+const token = await MyToken.deploy("MyToken", "MTK", 1000000, taxWallet);
+await token.deployed();
+```
+2. Mint tokens:
+```bash
+solidity
+Copy
+await token.mint(userAddress, ethers.utils.parseEther("1000"));
+```
+3. Pause/Unpause transfers:
+```bash
+solidity
+Copy
+await token.pause();
+await token.unpause();
+```
+4. Blacklist/Unblacklist addresses:
+```bash
+solidity
+Copy
+await token.blacklist(userAddress);
+await token.unblacklist(userAddress);
+```
+
+# Farming Contract
+## Deploying the Contract
+
+1. Deploy the farming contract:
+```bash
+solidity
+Copy
+const FarmingContract = await ethers.getContractFactory("FarmingContract");
+const farming = await FarmingContract.deploy(stakingTokenAddress, rewardTokenAddress, rewardRate);
+await farming.deployed();
+```
+2. Stake tokens:
+```bash
+solidity
+Copy
+await farming.stake(ethers.utils.parseEther("100"));
+```
+3. Claim rewards:
+```bash
+solidity
+Copy
+await farming.claimReward();
+```
+4. Unstake tokens:
+```bash
+solidity
+Copy
+await farming.unstake(ethers.utils.parseEther("50"));
+```
